@@ -1,0 +1,40 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net9.0-windows10.0.22000.0</TargetFramework>
+    <PlatformTarget>x64</PlatformTarget>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>CreaformBridge</RootNamespace>
+    <AssemblyName>CreaformBridge</AssemblyName>
+  </PropertyGroup>
+
+  <!--
+    Folder that holds CreaformApi.dll and CreaformAutomationApi.dll.
+    Defaults to the install path Creaform writes to the registry (the same value
+    AssemblyResolverSetup reads at runtime). Override on the command line with
+    -p:CreaformSdkBin="C:\path\to\folder" if the DLLs live elsewhere.
+  -->
+  <PropertyGroup Condition="'$(CreaformSdkBin)' == ''">
+    <CreaformSdkBin>$([MSBuild]::GetRegistryValueFromView('HKEY_LOCAL_MACHINE\SOFTWARE\Creaform\CreaformApi', 'InstallationPath', null, RegistryView.Registry64))</CreaformSdkBin>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="CreaformApi">
+      <HintPath>$(CreaformSdkBin)\CreaformApi.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="CreaformAutomationApi">
+      <HintPath>$(CreaformSdkBin)\CreaformAutomationApi.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="bridge.config.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+</Project>

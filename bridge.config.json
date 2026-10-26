@@ -1,0 +1,17 @@
+{
+  "bindAddress": "192.168.11.100",
+  "port": 5555,
+  "connect": {
+    "showSplashScreen": true,
+    "showTrayIcon": true,
+    "showInTaskbar": true,
+    "silentMessage": false,
+    "manageStatusWindowProgramatically": false,
+    "softwareName": "Creaform.OS"
+  },
+  "expectedExecutingApiVersion": 0,
+  "sessionPath": "",
+  "shutdownWaitS": 30.0,
+  "clientIdleS": 6.0,
+  "clientLossShutdownS": 10.0
+}
