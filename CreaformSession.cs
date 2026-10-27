@@ -239,12 +239,44 @@ namespace CreaformBridge
             }
 
             var lScan = lApp.Scan;
+
+            // 4. Persistent session, loaded once per Creaform.OS run. Loading changes the tracker and
+            //    scanner state the API reports, so it runs before the hardware checks below.
+            string lSessionPath = mConfig.ResolveSessionPath();
+            pInfo["sessionPath"] = lSessionPath;
+            if (mLoadedSessionPath != lSessionPath)
+            {
+                pInfo["sessionLoaded"] = false;
+                if (lScan != null && lScan.IsScanningStarted)
+                {
+                    pFaults.Add(Fault("SCAN_IN_PROGRESS", "session", "A scan is running; stop it before the session can be loaded", true));
+                    return;
+                }
+                if (!File.Exists(lSessionPath))
+                {
+                    pFaults.Add(Fault("SESSION_MISSING", "session", $"Session file not found: {lSessionPath}", false));
+                    return;
+                }
+                try
+                {
+                    lApp.LoadSession(lSessionPath);
+                    mLoadedSessionPath = lSessionPath;
+                    Console.WriteLine($"[bridge] loaded session {lSessionPath}");
+                }
+                catch (CreaformApi.Exception ex)
+                {
+                    pFaults.Add(Fault("SESSION_LOAD_FAILED", "session", $"LoadSession({lSessionPath}) failed: {ex.Message}", false));
+                    return;
+                }
+            }
+            pInfo["sessionLoaded"] = true;
+
             var lScanAutomation = lApp.ScanAutomation;
             var lTracker = lApp.Tracker;
             bool lTrackerRequired = lScanAutomation != null && lScanAutomation.IsTrackerRequiredToScan;
             pInfo["isTrackerRequiredToScan"] = lTrackerRequired;
 
-            // 4-5. C-Track
+            // 5-6. C-Track
             if (lTracker == null)
             {
                 if (lTrackerRequired)
@@ -256,6 +288,11 @@ namespace CreaformBridge
             {
                 TrackerOperatingStatus lStatus = lTracker.TrackerOperatingStatus;
                 pInfo["trackerStatus"] = lStatus.ToString();
+                // The same status text and color the Creaform.OS status window shows.
+                pInfo["trackerStatusText"] = lTracker.Status;
+                pInfo["trackerStatusColor"] = lTracker.StatusColor.ToString();
+                pInfo["trackerIsReady"] = lTracker.IsReady;
+                pInfo["trackerReferencingMode"] = lTracker.ReferencingMode.ToString();
                 pInfo["lastCalibrationDate"] = lTracker.LastCalibrationDate.ToString("o");
 
                 if (lStatus != TrackerOperatingStatus.Ready)
@@ -268,7 +305,7 @@ namespace CreaformBridge
                 }
             }
 
-            // 6-8. MetraSCAN
+            // 7-9. MetraSCAN
             if (lScan == null || lScanAutomation == null)
             {
                 pFaults.Add(Fault("SCANNER_UNAVAILABLE", "hardware", "The scanning module returned no scanner handle", false));
@@ -305,35 +342,6 @@ namespace CreaformBridge
             if (lScanningStarted)
             {
                 pFaults.Add(Fault("SCAN_IN_PROGRESS", "session", "A scan is running; stop it before readiness can pass", true));
-            }
-
-            // 9. Persistent session, loaded once per Creaform.OS run and only when everything else passed.
-            string lSessionPath = mConfig.ResolveSessionPath();
-            pInfo["sessionPath"] = lSessionPath;
-            if (pFaults.Count > 0 || mLoadedSessionPath == lSessionPath)
-            {
-                pInfo["sessionLoaded"] = mLoadedSessionPath == lSessionPath;
-                return;
-            }
-
-            if (!File.Exists(lSessionPath))
-            {
-                pInfo["sessionLoaded"] = false;
-                pFaults.Add(Fault("SESSION_MISSING", "session", $"Session file not found: {lSessionPath}", false));
-                return;
-            }
-
-            try
-            {
-                lApp.LoadSession(lSessionPath);
-                mLoadedSessionPath = lSessionPath;
-                pInfo["sessionLoaded"] = true;
-                Console.WriteLine($"[bridge] loaded session {lSessionPath}");
-            }
-            catch (CreaformApi.Exception ex)
-            {
-                pInfo["sessionLoaded"] = false;
-                pFaults.Add(Fault("SESSION_LOAD_FAILED", "session", $"LoadSession({lSessionPath}) failed: {ex.Message}", false));
             }
         }
 

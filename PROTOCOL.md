@@ -51,26 +51,29 @@ Checks run in this order. A failed gate ends the pass.
 | 1 gate | `ApiManager.IsConnected` | `NOT_CONNECTED` | connection | no |
 | 2 gate | `ExecutingApiVersion == expectedExecutingApiVersion` | `VERSION_NOT_PINNED`, `VERSION_MISMATCH` | version | no |
 | 3 gate | `IsScanningSupported` | `SCANNING_NOT_SUPPORTED` | module | no |
-| 4 | `Tracker.TrackerOperatingStatus` | `TRACKER_CALIB_TOO_OLD`, `TRACKER_CALIB_REQUIRED`, `TRACKER_CALIB_REQUIRED_TOO_HOT`, `TRACKER_CALIB_REQUIRED_TOO_COLD` | calibration | no |
-| 4 | | `TRACKER_WARMING`, `TRACKER_TEMP_OUT_OF_RANGE`, `TRACKER_NOT_SYNCHRONIZED`, `TRACKER_SYNCHRONIZING` | transient | yes |
-| 4 | | `TRACKER_NOT_REFERENCED`, `TRACKER_DAMAGED`, `TRACKER_UNKNOWN` | hardware | no |
-| 4 | Tracker module missing while `IsTrackerRequiredToScan` | `TRACKER_UNAVAILABLE` | hardware | no |
-| 5 | Status `Ready` but `Tracker.IsReady` false (when the tracker is required) | `TRACKER_NOT_READY` | hardware | yes |
-| 6 | `IsSoftwareTriggerSupported`, `IsScannerConfigurationAvailable()` | `SCANNER_NO_SW_TRIGGER`, `SCANNER_NO_CONFIG` | module | no |
-| 6 | Scan module handle missing | `SCANNER_UNAVAILABLE` | hardware | no |
-| 7 | `IsScannerReady`, `IsReadyToScan` | `SCANNER_NOT_READY`, `SCANNER_NOT_READY_TO_SCAN` | hardware | yes |
-| 8 | `IsScanningStarted` is false | `SCAN_IN_PROGRESS` | session | yes |
-| 9 | Session file exists, then `LoadSession` | `SESSION_MISSING`, `SESSION_LOAD_FAILED` | session | no |
+| 4 gate | No scan running, session file exists, then `LoadSession` | `SCAN_IN_PROGRESS`, `SESSION_MISSING`, `SESSION_LOAD_FAILED` | session | yes, no, no |
+| 5 | `Tracker.TrackerOperatingStatus` | `TRACKER_CALIB_TOO_OLD`, `TRACKER_CALIB_REQUIRED`, `TRACKER_CALIB_REQUIRED_TOO_HOT`, `TRACKER_CALIB_REQUIRED_TOO_COLD` | calibration | no |
+| 5 | | `TRACKER_WARMING`, `TRACKER_TEMP_OUT_OF_RANGE`, `TRACKER_NOT_SYNCHRONIZED`, `TRACKER_SYNCHRONIZING` | transient | yes |
+| 5 | | `TRACKER_NOT_REFERENCED`, `TRACKER_DAMAGED`, `TRACKER_UNKNOWN` | hardware | no |
+| 5 | Tracker module missing while `IsTrackerRequiredToScan` | `TRACKER_UNAVAILABLE` | hardware | no |
+| 6 | Status `Ready` but `Tracker.IsReady` false (when the tracker is required) | `TRACKER_NOT_READY` | hardware | yes |
+| 7 | `IsSoftwareTriggerSupported`, `IsScannerConfigurationAvailable()` | `SCANNER_NO_SW_TRIGGER`, `SCANNER_NO_CONFIG` | module | no |
+| 7 | Scan module handle missing | `SCANNER_UNAVAILABLE` | hardware | no |
+| 8 | `IsScannerReady`, `IsReadyToScan` | `SCANNER_NOT_READY`, `SCANNER_NOT_READY_TO_SCAN` | hardware | yes |
+| 9 | `IsScanningStarted` is false | `SCAN_IN_PROGRESS` | session | yes |
 
-Step 9 runs only when steps 1 to 8 found no fault, and only once per Creaform.OS run: a later pass with the same
-`sessionPath` skips the load. The bridge never saves the session.
+Step 4 loads the session once per Creaform.OS run: a later pass with the same `sessionPath` skips the load. It runs
+before the hardware checks because loading changes the tracker and scanner state the API reports, so `READY` always
+describes the loaded session. The bridge never saves the session.
 
 A Creaform exception during the pass is reported as a fault with the exception code and category `connection`.
 Any other exception is `INTERNAL_ERROR`, category `bridge`.
 
 `info` fields (present when the pass got far enough to read them): `apiVersion`, `executingApiVersion`,
 `expectedExecutingApiVersion`, `isStatusWindowVisible`, `isScanningSupported`, `isTrackingSupported`,
-`isShootingSupported`, `isProbingSupported`, `isTrackerRequiredToScan`, `trackerStatus`, `lastCalibrationDate`,
+`isShootingSupported`, `isProbingSupported`, `isTrackerRequiredToScan`, `trackerStatus`, `trackerStatusText` and
+`trackerStatusColor` (what the Creaform.OS status window shows), `trackerIsReady`, `trackerReferencingMode`,
+`lastCalibrationDate`,
 `isSoftwareTriggerSupported`, `isScannerConfigurationAvailable`, `isScannerReady`, `isReadyToScan`,
 `isScanningStarted`, `sessionPath`, `sessionLoaded`.
 
